@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "vga.h"
 #include "gdt.h"
+#include "idt.h"
 
 #define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002
 
@@ -70,4 +71,18 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info)
     vga_write("Loading GDT...\n");
     gdt_init();
     show_gdt_state();
+
+    /* ---- Section 3: IDT ---- */
+    vga_write("\nLoading IDT...");
+    idt_init();
+    print_ok();
+
+    /* Prove the exception handler works: divide by zero on purpose.
+     * volatile stops the compiler from noticing and removing it. */
+    vga_write("Dividing by zero on purpose...\n");
+    volatile int a = 1, b = 0;
+    volatile int c = a / b;
+    (void)c;
+
+    vga_write("If you can read this, the exception was ignored!\n");
 }

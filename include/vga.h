@@ -29,6 +29,7 @@ void vga_clear(void);
 void vga_set_color(enum vga_color fg, enum vga_color bg);
 void vga_putchar(char c);
 void vga_write(const char *str);
+void vga_pad_line(void);
 void vga_write_hex(uint32_t value);
 
 #endif

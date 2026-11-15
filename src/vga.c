@@ -75,6 +75,15 @@ void vga_putchar(char c)
         vga_scroll();
 }
 
+/* Fill the rest of the current line with spaces (in the current color)
+ * and move to the next line. Used to draw full-width colored bars. */
+void vga_pad_line(void)
+{
+    do {
+        vga_putchar(' ');
+    } while (cursor_col != 0);
+}
+
 void vga_write(const char *str)
 {
     while (*str)
