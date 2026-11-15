@@ -129,3 +129,16 @@ void vga_write_hex(uint32_t value)
     for (int shift = 28; shift >= 0; shift -= 4)
         vga_putchar(digits[(value >> shift) & 0xF]);
 }
+
+/* Print an unsigned number in decimal */
+void vga_write_dec(uint32_t value)
+{
+    char buf[11];
+    int i = 0;
+    do {
+        buf[i++] = '0' + value % 10;
+        value /= 10;
+    } while (value);
+    while (i--)
+        vga_putchar(buf[i]);
+}

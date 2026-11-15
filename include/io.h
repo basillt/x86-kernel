@@ -22,6 +22,19 @@ static inline uint8_t inb(uint16_t port)
     return value;
 }
 
+/* 32-bit versions, needed for PCI configuration space */
+static inline void outl(uint16_t port, uint32_t value)
+{
+    __asm__ volatile ("outl %0, %1" : : "a"(value), "Nd"(port));
+}
+
+static inline uint32_t inl(uint16_t port)
+{
+    uint32_t value;
+    __asm__ volatile ("inl %1, %0" : "=a"(value) : "Nd"(port));
+    return value;
+}
+
 /* Writing to unused port 0x80 takes ~1 microsecond: a tiny delay
  * for old hardware (like the PIC) that needs time between commands. */
 static inline void io_wait(void)

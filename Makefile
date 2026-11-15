@@ -19,7 +19,7 @@ ASM_SRCS := $(wildcard src/*.asm)
 OBJS     := $(patsubst src/%.asm,$(BUILD)/%.o,$(ASM_SRCS)) \
             $(patsubst src/%.c,$(BUILD)/%.o,$(C_SRCS))
 
-.PHONY: all run debug clean
+.PHONY: all run run-nvme debug test clean
 
 all: $(KERNEL)
 
@@ -39,9 +39,23 @@ $(BUILD):
 run: $(KERNEL)
 	qemu-system-i386 -kernel $(KERNEL)
 
+# Boot with a virtual NVMe SSD attached (16 MB empty disk image)
+NVME_IMG := $(BUILD)/nvme.img
+$(NVME_IMG): | $(BUILD)
+	truncate -s 16M $@
+
+run-nvme: $(KERNEL) $(NVME_IMG)
+	qemu-system-i386 -kernel $(KERNEL) \
+		-drive file=$(NVME_IMG),if=none,id=nvm,format=raw \
+		-device nvme,serial=deadbeef,drive=nvm
+
 # Same, but print every interrupt/exception and don't reboot on triple fault
 debug: $(KERNEL)
 	qemu-system-i386 -kernel $(KERNEL) -d int,cpu_reset -no-reboot
+
+# Automated tests: boot in QEMU, type on the keyboard, check the screen
+test: $(KERNEL)
+	python3 tests/run_tests.py --no-build
 
 clean:
 	rm -rf $(BUILD)

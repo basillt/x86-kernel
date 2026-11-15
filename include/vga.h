@@ -32,5 +32,6 @@ void vga_write(const char *str);
 void vga_pad_line(void);
 void vga_backspace(void);
 void vga_write_hex(uint32_t value);
+void vga_write_dec(uint32_t value);
 
 #endif
