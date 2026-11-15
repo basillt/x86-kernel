@@ -7,6 +7,7 @@
  */
 #include "isr.h"
 #include "vga.h"
+#include "irq.h"
 
 static const char *exception_names[32] = {
     "Divide by zero",               "Debug",
@@ -69,8 +70,11 @@ static void kernel_panic(struct registers *r)
         __asm__ volatile ("cli; hlt");
 }
 
+/* Called by interrupts.asm for every interrupt */
 void interrupt_dispatch(struct registers *r)
 {
     if (r->int_no < 32)
-        kernel_panic(r);
+        kernel_panic(r);        /* CPU exception: doesn't return */
+    else if (r->int_no < 48)
+        irq_dispatch(r);        /* hardware interrupt (part 4)   */
 }

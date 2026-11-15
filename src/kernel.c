@@ -5,6 +5,8 @@
 #include "vga.h"
 #include "gdt.h"
 #include "idt.h"
+#include "pic.h"
+#include "keyboard.h"
 
 #define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002
 
@@ -77,12 +79,24 @@ void kernel_main(uint32_t magic, uint32_t multiboot_info)
     idt_init();
     print_ok();
 
-    /* Prove the exception handler works: divide by zero on purpose.
-     * volatile stops the compiler from noticing and removing it. */
-    vga_write("Dividing by zero on purpose...\n");
-    volatile int a = 1, b = 0;
-    volatile int c = a / b;
-    (void)c;
+    /* ---- Section 4: PIC + keyboard ---- */
+    vga_write("Remapping PIC (IRQ 0-15 -> vectors 32-47)...");
+    pic_init();
+    print_ok();
 
-    vga_write("If you can read this, the exception was ignored!\n");
+    vga_write("Starting keyboard driver...");
+    keyboard_init();
+    print_ok();
+
+    __asm__ volatile ("sti");   /* interrupts on: from now on the CPU can be interrupted */
+
+    vga_set_color(VGA_YELLOW, VGA_BLACK);
+    vga_write("\nType something! (F1 = divide by zero, to test the exception handler)\n");
+    vga_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+    vga_write("> ");
+
+    /* Nothing left to do: sleep until the next interrupt, forever.
+     * hlt wakes up on every interrupt, the handler runs, and we sleep again. */
+    for (;;)
+        __asm__ volatile ("hlt");
 }

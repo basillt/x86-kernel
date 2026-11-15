@@ -10,6 +10,7 @@
  * No printf, no OS: writing to this memory IS printing.
  */
 #include "vga.h"
+#include "io.h"
 
 #define VGA_WIDTH  80
 #define VGA_HEIGHT 25
@@ -25,6 +26,18 @@ static inline uint16_t vga_entry(char c, uint8_t color)
     return (uint16_t)(unsigned char)c | ((uint16_t)color << 8);
 }
 
+/* Move the blinking hardware cursor. The VGA controller has its own
+ * registers for this, reached through I/O ports 0x3D4 (index) and
+ * 0x3D5 (data). The position is a single number: row * 80 + col. */
+static void vga_update_cursor(void)
+{
+    uint16_t pos = cursor_row * VGA_WIDTH + cursor_col;
+    outb(0x3D4, 0x0F);              /* cursor position, low byte  */
+    outb(0x3D5, pos & 0xFF);
+    outb(0x3D4, 0x0E);              /* cursor position, high byte */
+    outb(0x3D5, (pos >> 8) & 0xFF);
+}
+
 void vga_set_color(enum vga_color fg, enum vga_color bg)
 {
     current_color = (uint8_t)(fg | (bg << 4));
@@ -37,6 +50,7 @@ void vga_clear(void)
             VGA_MEMORY[y * VGA_WIDTH + x] = vga_entry(' ', current_color);
     cursor_row = 0;
     cursor_col = 0;
+    vga_update_cursor();
 }
 
 void vga_init(void)
@@ -73,6 +87,23 @@ void vga_putchar(char c)
 
     if (cursor_row == VGA_HEIGHT)
         vga_scroll();
+
+    vga_update_cursor();
+}
+
+/* Erase the character before the cursor (can go back up a line) */
+void vga_backspace(void)
+{
+    if (cursor_col > 0) {
+        cursor_col--;
+    } else if (cursor_row > 0) {
+        cursor_row--;
+        cursor_col = VGA_WIDTH - 1;
+    } else {
+        return;
+    }
+    VGA_MEMORY[cursor_row * VGA_WIDTH + cursor_col] = vga_entry(' ', current_color);
+    vga_update_cursor();
 }
 
 /* Fill the rest of the current line with spaces (in the current color)
